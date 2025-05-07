@@ -1,33 +1,72 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-from pybaseball import batting_stats
+# Import necessary libraries
+import streamlit as st  # For creating web app interface
+import pandas as pd  # For data manipulation
+import plotly.express as px  # For interactive visualizations
+from pybaseball import batting_stats  # For fetching baseball stats
 
-# Fetch data (simplified)
+# ----------------------------
+# DATA FETCHING FUNCTION
+# ----------------------------
 def fetch_data(year=2023):
-    return batting_stats(year, qual=100)  # qual=100 filters players with 100+ plate appearances
+    """Retrieve batting statistics for a given year"""
+    # batting_stats() comes from pybaseball library
+    # qual=100 filters for players with 100+ plate appearances (removes part-timers)
+    return batting_stats(year, qual=100)  
 
-# Clean data
+# ----------------------------
+# DATA CLEANING FUNCTION
+# ----------------------------
 def clean_data(df):
-    if not df.empty:
-        df["OPS"] = df["OBP"] + df["SLG"]  # Calculate On-base Plus Slugging
-        return df[["Name", "Team", "WAR", "OPS", "HR", "AVG"]]
-    return df
+    """Process raw data into analysis-ready format"""
+    if not df.empty:  # Only process if data exists
+        # Create OPS metric (On-base Plus Slugging) by adding two columns
+        df["OPS"] = df["OBP"] + df["SLG"]  
+        
+        # Select only these key columns for our dashboard
+        return df[["Name", "Team", "WAR", "OPS", "HR", "AVG"]]  
+    return df  # Return empty df if no data
 
-# Streamlit UI
-st.title(" Baseball Stats Dashboard")
-year = st.sidebar.selectbox("Year", [2023, 2022, 2021])
+# ----------------------------
+# STREAMLIT APP LAYOUT
+# ----------------------------
+st.title("⚾ Baseball Stats Dashboard")  # Main title
 
-# Fetch and clean data
-df = clean_data(fetch_data(year))
+# Sidebar widget for year selection
+# Creates a dropdown to choose between 2021-2023
+year = st.sidebar.selectbox("Year", [2023, 2022, 2021])  
 
-# Show data
-if not df.empty:
+# ----------------------------
+# DATA PROCESSING
+# ----------------------------
+# 1. Fetch data from pybaseball
+# 2. Clean/organize the data
+df = clean_data(fetch_data(year))  
+
+# ----------------------------
+# DASHBOARD OUTPUT
+# ----------------------------
+if not df.empty:  # Only show if we have data
+    # SECTION 1: Top Players Table
     st.header(f"Top Players in {year}")
-    st.dataframe(df.sort_values("WAR", ascending=False).head(10))
     
+    # Display top 10 players by WAR (Wins Above Replacement)
+    st.dataframe(
+        df.sort_values("WAR", ascending=False).head(10)  # Sort by WAR descending
+    )
+    
+    # SECTION 2: Interactive Scatter Plot
     st.header("WAR vs OPS")
-    fig = px.scatter(df, x="OPS", y="WAR", hover_data=["Name"])
-    st.plotly_chart(fig)
-else:
-    st.error("No data found!")
+    
+    # Create Plotly scatter plot
+    fig = px.scatter(
+        df,  # Our cleaned data
+        x="OPS",  # X-axis: On-base Plus Slugging
+        y="WAR",  # Y-axis: Wins Above Replacement
+        hover_data=["Name"]  # Show player names on hover
+    )
+    
+    # Display the plot in Streamlit
+    st.plotly_chart(fig)  
+    
+else:  # Error handling if no data
+    st.error("No data found!")  # Shows red error message
